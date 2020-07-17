@@ -1,0 +1,75 @@
+//Reading offset range using StreamingQueryListener
+
+spark.streams().addListener(new StreamingQueryListener() {
+			@Override
+			public void onQueryStarted(QueryStartedEvent queryStarted) {
+				System.out.println("Query started: " + queryStarted.id());
+			}
+
+			@Override
+			public void onQueryTerminated(QueryTerminatedEvent queryTerminated) {
+				System.out.println("Query terminated: " + queryTerminated.id());
+			}
+
+			@Override
+			public void onQueryProgress(QueryProgressEvent queryProgress) {
+				String progreesSting = queryProgress.progress().json();
+				JSONParser parser = new JSONParser();
+				try {
+					ObjectMapper mapper1 = new ObjectMapper();
+					mapper1.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+					JSONObject jsonObj = (JSONObject) parser.parse(progreesSting);
+					JSONArray jsonArray = (JSONArray) jsonObj.get("sources");
+					// logger.info("jsonArray"+jsonArray.toString());
+					JSONObject jsonObj1 = (JSONObject) jsonArray.get(0);
+					JSONObject jsonObj2 = (JSONObject) jsonObj1.get("endOffset");
+					JSONObject jsonObj3 = (JSONObject) jsonObj1.get("startOffset");
+
+					String endoffset_jsonstring = jsonObj2.toString();
+					Map<String, Map<String, Integer>> endoffsetMap = mapper1.readValue(endoffset_jsonstring,
+							new TypeReference<Map<String, Map<String, Integer>>>() {
+							});
+
+					if (jsonObj3 != null) {
+						String startoffset_jsonstring = jsonObj3.toString();
+						Map<String, Map<String, Integer>> startoffsetMap = mapper1.readValue(startoffset_jsonstring,
+								new TypeReference<Map<String, Map<String, Integer>>>() {
+								});
+
+						for (String topic : endoffsetMap.keySet()) {
+							Map<String, Integer> end_partitionmap = endoffsetMap.get(topic);
+							Map<String, Integer> start_partitionmap = startoffsetMap.get(topic);
+							for (String partition : end_partitionmap.keySet()) {
+								int startoffset = start_partitionmap.get(partition);
+								int endoffset = end_partitionmap.get(partition);
+								System.out.println("topic=" + topic + "||partition=" + partition + "||startoff=" + startoffset
+										+ "||endoffset=" + endoffset);
+
+							}
+
+						}
+
+					}else{
+						for (String topic : endoffsetMap.keySet()) {
+							Map<String, Integer> end_partitionmap = endoffsetMap.get(topic);
+							for (String partition : end_partitionmap.keySet()) {
+								int endoffset = end_partitionmap.get(partition);
+								System.out.println("topic=" + topic + "||partition=" + partition + "||startoff=" + 0
+										+ "||endoffset=" + endoffset);
+
+							}
+
+						}
+						
+					}
+
+				} catch (ParseException | JsonProcessingException e) {
+					// TODO Auto-generated catch block
+					logger.info("error");
+					e.printStackTrace();
+				}
+
+				// logger.info("Query made progress: " +
+				// queryProgress.progress());
+			}
+		});
