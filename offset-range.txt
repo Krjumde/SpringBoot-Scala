@@ -70,6 +70,10 @@ spark.streams().addListener(new StreamingQueryListener() {
 				}
 
 				// logger.info("Query made progress: " +
+				
+				
+				
+				//something edit 
 				// queryProgress.progress());
 			}
 		});
